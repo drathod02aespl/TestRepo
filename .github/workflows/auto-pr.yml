@@ -2,7 +2,6 @@ name: Auto Create Pull Request
 
 on:
   push:
-    # Trigger on any branch push
     branches:
       - '**'
 
@@ -13,17 +12,19 @@ permissions:
 jobs:
   open-pull-request:
     runs-on: ubuntu-latest
+    # Skip running if we push directly to the default branch (master/main)
+    if: github.ref_name != github.event.repository.default_branch
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Create Pull Request
-        # We check to ensure we don't try to open a PR from the default branch into itself
-        if: github.ref_name != github.event.repository.default_branch
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref_name }}
-          base: ${{ github.event.repository.default_branch }} # Automatically targets master, main, etc.
-          title: "PR: ${{ github.ref_name }}"
-          body: "Automated pull request created from branch push."
+      - name: Create Pull Request via GitHub CLI
+        run: |
+          gh pr create \
+            --head "${{ github.ref_name }}" \
+            --base "${{ github.event.repository.default_branch }}" \
+            --title "PR: ${{ github.ref_name }}" \
+            --body "Automated pull request created from branch push." \
+            || echo "PR already exists or could not be created"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
