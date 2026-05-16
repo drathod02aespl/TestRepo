@@ -2,9 +2,9 @@ name: Auto Create Pull Request
 
 on:
   push:
-    branches-ignore:
-      - main
-      - master
+    # Trigger on any branch push
+    branches:
+      - '**'
 
 permissions:
   contents: write
@@ -18,10 +18,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create Pull Request
+        # We check to ensure we don't try to open a PR from the default branch into itself
+        if: github.ref_name != github.event.repository.default_branch
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref_name }}
-          base: main
+          base: ${{ github.event.repository.default_branch }} # Automatically targets master, main, etc.
           title: "PR: ${{ github.ref_name }}"
-          body: "This pull request was automatically generated after a branch push."
+          body: "Automated pull request created from branch push."
